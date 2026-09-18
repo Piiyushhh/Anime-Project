@@ -4,15 +4,19 @@ import AnimeCard from '../components/AnimeCard';
 import SearchBar from '../components/SearchBar';
 import HeroSection from '../components/HeroSection';
 import Footer from '../components/Footer';
+import axios from 'axios';
+
+
 const Dashboard = () => {
-  const [animeData, setAnimeData] = useState({trending: [], popular: [], upcoming: []});
-  const [featuredAnime, setFeaturedAnime] = useState(null);
+  const [animeData, setAnimeData] = useState({ trending: [], popular: [], upcoming: [] });
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState('grid');
   const [activeTab, setActiveTab] = useState('trending');
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const canvasRef = useRef(null);
-  const heroRef = useRef(null);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(true);
+
 
   useEffect(() => {
     fetchAnimeData();
@@ -26,32 +30,38 @@ const Dashboard = () => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
- const fetchAnimeData = async () => {
-  try {
-    // Fetching anime data for each category
-    const trendingResponse = await fetch('https://api.jikan.moe/v4/top/anime?limit=20&order_by=score&sort=desc');
-    const popularResponse = await fetch('https://api.jikan.moe/v4/anime?limit=20&order_by=members&sort=desc');
-    const upcomingResponse = await fetch('https://api.jikan.moe/v4/anime?limit=20&status=upcoming');
+  const fetchAnimeData = async (currentPage) => {
+    try {
+      setLoading(true);
 
-    // Parsing JSON responses
-    const trendingData = await trendingResponse.json();
-    const popularData = await popularResponse.json();
-    const upcomingData = await upcomingResponse.json();
+      const { data } = await axios.get(
+        `http://localhost:4000/Animestream/Dashboard?page=${currentPage}`
+      );
 
-    // Updating state with fetched data
-    setAnimeData({
-      trending: trendingData.data || [],
-      popular: popularData.data || [],
-      upcoming: upcomingData.data || [],
-    });
-    
-    setFeaturedAnime(trendingData.data?.[0] || null);
-    setLoading(false);
-  } catch (error) {
-    console.error('Error fetching anime:', error);
-    setLoading(false);
-  }
-};
+      setAnimeData({
+        trending: data.trending || [],
+        popular: data.popular || [],
+        upcoming: data.upcoming || [],
+        recent: data.recent || []
+      });
+
+
+      if (data.pagination) {
+        setHasNextPage(
+          currentPage < data.pagination.total_pages
+        );
+      } else {
+        setHasNextPage(
+          (data.recent || []).length === 20
+        );
+      }
+
+    } catch (error) {
+      console.error("Error fetching anime:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -113,10 +123,10 @@ const Dashboard = () => {
       <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" />
 
       {/* Gradient Orbs */}
-      <div className="fixed top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" 
-           style={{ transform: `translate(${mousePos.x * 0.02}px, ${mousePos.y * 0.02}px)` }} />
+      <div className="fixed top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"
+        style={{ transform: `translate(${mousePos.x * 0.02}px, ${mousePos.y * 0.02}px)` }} />
       <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"
-           style={{ transform: `translate(${-mousePos.x * 0.015}px, ${-mousePos.y * 0.015}px)` }} />
+        style={{ transform: `translate(${-mousePos.x * 0.015}px, ${-mousePos.y * 0.015}px)` }} />
 
       {/* Header */}
       <header className="relative z-50 sticky top-0 backdrop-blur-2xl bg-[#0B0F14]/80 border-b border-white/5">
@@ -132,7 +142,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-black tracking-tighter bg-gradient-to-r from-purple-400 via-purple-300 to-cyan-400 text-transparent bg-clip-text">
-                  AnimeStream 
+                  AnimeStream
                 </h1>
                 <p className="text-xs text-purple-400/60 tracking-wide">ANIME HUB</p>
               </div>
@@ -157,16 +167,16 @@ const Dashboard = () => {
 
       <main className="relative z-10">
         {/* Hero Section */}
-        
-          <HeroSection 
-            animeList={animeData.trending.filter((anime, index, self) =>
-              index === self.findIndex((a) =>
-                a.mal_id === anime.mal_id || (a.title === anime.title && a.year === anime.year)
-              )
-            ).slice(0, 5)}
-          />
-        
-        
+
+        <HeroSection
+          animeList={animeData.trending.filter((anime, index, self) =>
+            index === self.findIndex((a) =>
+              a.id === anime.id || (a.title === anime.title && a.year === anime.year)
+            )
+          ).slice(0, 5)}
+        />
+
+
         {/* Content Section */}
         <section className="relative py-16 px-8">
           <div className="max-w-[1800px] mx-auto">
@@ -179,11 +189,10 @@ const Dashboard = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
-                        activeTab === tab.id
-                          ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-500/30'
-                          : 'text-white/60 hover:text-white hover:bg-white/5'
-                      }`}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${activeTab === tab.id
+                        ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg shadow-purple-500/30'
+                        : 'text-white/60 hover:text-white hover:bg-white/5'
+                        }`}
                     >
                       <Icon className="w-5 h-5" />
                       {tab.label}
@@ -195,21 +204,19 @@ const Dashboard = () => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setActiveView('grid')}
-                  className={`p-3 rounded-xl transition-all ${
-                    activeView === 'grid'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white/5 text-white/60 hover:bg-white/10'
-                  }`}
+                  className={`p-3 rounded-xl transition-all ${activeView === 'grid'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10'
+                    }`}
                 >
                   <Grid className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setActiveView('list')}
-                  className={`p-3 rounded-xl transition-all ${
-                    activeView === 'list'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white/5 text-white/60 hover:bg-white/10'
-                  }`}
+                  className={`p-3 rounded-xl transition-all ${activeView === 'list'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10'
+                    }`}
                 >
                   <List className="w-5 h-5" />
                 </button>
@@ -217,7 +224,7 @@ const Dashboard = () => {
             </div>
 
             {/* Anime Grid */}
-           {loading ? (
+            {loading ? (
               <div className="flex justify-center py-20">
                 <div className="animate-spin h-16 w-16 border-4 border-purple-500 border-t-transparent rounded-full" />
               </div>
@@ -228,27 +235,65 @@ const Dashboard = () => {
                     ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
                     : "space-y-4"
                 }
-              > 
+              >
 
-                {animeData[activeTab]?.filter((anime,index,self)=> index === self.findIndex((a)=>
-                 a.mal_id === anime.mal_id ||
-                (a.title === anime.title && a.year === anime.year)
-              )
-            ).slice(1).map((anime, index) => (
-                  <AnimeCard
-                    key={anime.mal_id}
-                    anime={anime}
-                    index={index}
-                    view={activeView}
-                  />
-                ))}
+                {animeData[activeTab]
+                  ?.filter((anime, index, self) =>
+                    index === self.findIndex((a) =>
+                      a.id === anime.id ||
+                      (a.title === anime.title && a.year === anime.year)
+                    )
+                  )
+                  .map((anime, index) => (
+                    <AnimeCard
+                      key={anime.id}
+                      anime={anime}
+                      index={index}
+                      view={activeView}
+                    />
+                  ))
+                }
               </div>
             )}
-           </div>
+
+
+            {/* Pagination Buttons */}
+            {!loading && (
+              <div className="flex items-center justify-center gap-4 mt-12">
+
+                <button
+                  onClick={() => setPage((prev) => prev - 1)}
+                  disabled={page === 1}
+                  className="px-6 py-3 rounded-xl bg-white/5 border border-white/10
+                        hover:bg-white/10 disabled:opacity-30
+                        disabled:cursor-not-allowed transition-all"
+                >
+                  Previous
+                </button>
+
+                <div className="px-5 py-3 rounded-xl bg-white/5 border border-white/10">
+                  Page {page}
+                </div>
+
+                <button
+                  onClick={() => setPage((prev) => prev + 1)}
+                  disabled={!hasNextPage}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r
+                        from-purple-600 to-cyan-600
+                        hover:shadow-lg hover:shadow-purple-500/30
+                        disabled:opacity-30
+                        disabled:cursor-not-allowed transition-all"
+                >
+                  Next
+                </button>
+
+              </div>
+            )}
+          </div>
         </section>
       </main>
 
-      <Footer/> 
+      <Footer />
     </div>
   );
 };

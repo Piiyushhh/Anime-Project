@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Home, 
-  Play, 
-  Star, 
+import {
+  Home,
+  Play,
+  Star,
   Bookmark,
   User,
   ArrowLeft,
   Calendar,
-  Eye,
   Heart,
   Share2,
   Download,
@@ -19,66 +18,63 @@ import {
   Clock3,
   Tv
 } from 'lucide-react';
-import { useParams,useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import SearchBar from '../components/SearchBar';
 
 
 const SingleAnimeDetailsPage = () => {
 
-  const handleNavigator = ()=>{
+  const handleNavigator = () => {
     navigate(`/Watch/${id}`);
   }
 
-    //  Add to Watchlist 
-const handleAddToWatchlist = async (animeId) => {
-  try {
-    const res = await fetch("http://localhost:4000/Animestream/WatchList/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({id: animeId }),
-    });
+  //  Add to Watchlist 
+  const handleAddToWatchlist = async (animeId) => {
+    try {
+      const { data } = await axios.post("http://localhost:4000/Animestream/WatchList/add", {
+        id: animeId
+      });
 
-    const data = await res.json();
-    if (data.success) {
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 2500); // hides after 2.5s
-    } else {
-      alert(data.message || "Something went wrong");
+      if (data.success) {
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 2500);
+      } else {
+        alert(data.message || "Something went wrong");
+      }
+    } catch (err) {
+      console.error("Error adding to watchlist:", err);
     }
-  } catch (err) {
-    console.error("Error adding to watchlist:", err);
-  }
-};
+  };
 
-const handleWatchTrailer = () => {
-  if (animeData?.trailer?.url) {
-    window.open(animeData.trailer.url, '_blank');
-  }
-  else{
-    alert("Trailer not available");
-  }
+  const handleWatchTrailer = () => {
+    if (animeData?.trailer?.url) {
+      window.open(animeData.trailer.url, '_blank');
+    }
+    else {
+      alert("Trailer not available");
+    }
 
-};
-  
+  };
+
   const [showToast, setShowToast] = useState(false);
   const { id } = useParams();
   const [animeData, setAnimeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  
+
   useEffect(() => {
     const fetchAnime = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:4000/Animestream/AnimePage/${id}`); // call backend
+        const { data } = await axios.get(`http://localhost:4000/Animestream/AnimePage/${id}`);
         setAnimeData(data);
       } catch (error) {
         console.error("Failed to fetch anime:", error);
       } finally {
         setLoading(false);
       }
-    };  
+    };
 
     fetchAnime();
   }, [id]);
@@ -90,32 +86,32 @@ const handleWatchTrailer = () => {
     <div className="min-h-screen bg-slate-900 text-white">
       {/* Header */}
       <div className="flex items-center justify-between p-6 bg-slate-800 border-b border-slate-700">
-        <button className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors" 
-        onClick={() => navigate('/Dashboard')}>
+        <button className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+          onClick={() => navigate('/Dashboard')}>
           <ArrowLeft size={20} />
           <span>Back to Browse</span>
         </button>
-        
-        <SearchBar/>
 
-         <div className="flex items-center gap-5 mr-2">
-            <button className="relative group flex items-center gap-2 hover:text-cyan-400 transition-all"
-              onClick={()=>navigate('/dashboard')}>
-              <Home className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
-              Home
-            </button>
+        <SearchBar />
 
-            <button className="relative group flex items-center gap-2 hover:text-purple-400 transition-all"
-            onClick={()=>navigate('/Watchlist')}>
-              <Bookmark className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-              Watchlist
-            </button>
+        <div className="flex items-center gap-5 mr-2">
+          <button className="relative group flex items-center gap-2 hover:text-cyan-400 transition-all"
+            onClick={() => navigate('/dashboard')}>
+            <Home className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+            Home
+          </button>
 
-            <button className="relative group flex items-center gap-3  hover:text-pink-400 transition-all">
-              <User className="w-5 h-5 text-pink-400 group-hover:scale-110 transition-transform" />
-              Profile 
-            </button>
-            </div>
+          <button className="relative group flex items-center gap-2 hover:text-purple-400 transition-all"
+            onClick={() => navigate('/Watchlist')}>
+            <Bookmark className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+            Watchlist
+          </button>
+
+          <button className="relative group flex items-center gap-3  hover:text-pink-400 transition-all">
+            <User className="w-5 h-5 text-pink-400 group-hover:scale-110 transition-transform" />
+            Profile
+          </button>
+        </div>
       </div>
 
       {/* Main Anime Card */}
@@ -124,12 +120,12 @@ const handleWatchTrailer = () => {
           {/* Hero Section */}
           <div className="relative h-80 overflow-hidden">
             <img
-              src={animeData?.images?.jpg?.large_image_url}
+              src={animeData?.background_image || animeData?.poster}
               alt={animeData?.title}
               className="w-full h-full object-cover blur-sm scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-800 via-slate-800/60 to-slate-800/20" />
-            
+
             {/* Floating Stats */}
             <div className="absolute top-6 right-6 flex space-x-4">
               <div className="bg-black/50 backdrop-blur-sm px-3 py-2 rounded-lg">
@@ -154,7 +150,7 @@ const handleWatchTrailer = () => {
               <div className="flex-shrink-0">
                 <div className="relative group">
                   <img
-                    src={animeData?.images?.jpg?.large_image_url}
+                    src={animeData?.poster}
                     alt={animeData?.title || 'no title'}
                     className="w-80 h-[480px] object-cover rounded-xl shadow-2xl transform group-hover:scale-105 transition-transform duration-300"
                   />
@@ -172,9 +168,9 @@ const handleWatchTrailer = () => {
                     {animeData.title}
                   </h1>
                   <div className="flex flex-wrap gap-4 text-lg text-gray-400">
-                    <span>{animeData.title_english}</span>
-                    <span>•</span>
-                    <span>{animeData.title_japanese}</span>
+                    {animeData.native && <span>{animeData.native}</span>}
+                    {animeData.native && animeData.alternative && <span>•</span>}
+                    {animeData.alternative && <span>{animeData.alternative}</span>}
                   </div>
                 </div>
 
@@ -182,18 +178,17 @@ const handleWatchTrailer = () => {
                 <div className="flex flex-wrap items-center gap-6">
                   <div className="flex items-center space-x-2 bg-slate-700 px-4 py-2 rounded-lg">
                     <Star className="text-yellow-400" size={20} />
-                    <span className="text-xl font-bold">{animeData.score}</span>
-                    <span className="text-gray-400">({animeData.scored_by.toLocaleString()} users)</span>
+                    <span className="text-xl font-bold">{animeData.score || 'N/A'}</span>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2 bg-slate-700 px-4 py-2 rounded-lg">
                     <Calendar className="text-blue-400" size={20} />
                     <span>{animeData.year} • {animeData.season}</span>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2 bg-slate-700 px-4 py-2 rounded-lg">
                     <Tv className="text-green-400" size={20} />
-                    <span>{animeData.episodes} Episodes</span>
+                    <span>{animeData.episodes?.length || 0} Episodes</span>
                   </div>
 
                   <div className="flex items-center space-x-2 bg-slate-700 px-4 py-2 rounded-lg">
@@ -205,25 +200,25 @@ const handleWatchTrailer = () => {
                 {/* Action Buttons */}
                 <div className="flex flex-wrap items-center gap-4">
                   <button className="bg-red-600 hover:bg-red-700 px-8 py-4 rounded-xl flex items-center space-x-3 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                  onClick={()=>handleNavigator(id)}>
+                    onClick={() => handleNavigator(id)}>
                     <Play size={24} />
                     <span>Watch Now</span>
                   </button>
-                  
+
                   <button className="bg-slate-700 hover:bg-slate-600 px-6 py-4 rounded-xl flex items-center space-x-2 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                  onClick={()=>handleAddToWatchlist(id)}>
+                    onClick={() => handleAddToWatchlist(id)}>
                     <Plus size={24} />
                     <span>Add to Watchlist</span>
                   </button>
-                  
+
                   <button className="bg-slate-700 hover:bg-slate-600 p-4 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
                     <Heart size={24} />
                   </button>
-                  
+
                   <button className="bg-slate-700 hover:bg-slate-600 p-4 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
                     <Share2 size={24} />
                   </button>
-                  
+
                   <button className="bg-slate-700 hover:bg-slate-600 p-4 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
                     <Download size={24} />
                   </button>
@@ -234,12 +229,12 @@ const handleWatchTrailer = () => {
                   <div>
                     <h3 className="text-lg font-semibold mb-2 text-gray-300">Genres</h3>
                     <div className="flex flex-wrap gap-2">
-                      {animeData.genres.map((genre, index) => (
+                      {animeData.terms_by_type?.genre?.map((genre, index) => (
                         <span
                           key={index}
                           className="bg-gradient-to-r from-red-500/20 to-red-600/20 border border-red-500/30 px-4 py-2 rounded-full text-sm font-medium hover:from-red-500/30 hover:to-red-600/30 transition-colors cursor-pointer"
                         >
-                          {genre.name}
+                          {genre}
                         </span>
                       ))}
                     </div>
@@ -248,12 +243,12 @@ const handleWatchTrailer = () => {
                   <div>
                     <h3 className="text-lg font-semibold mb-2 text-gray-300">Themes</h3>
                     <div className="flex flex-wrap gap-2">
-                      {animeData.themes.map((theme, index) => (
+                      {animeData.terms_by_type?.theme?.map((theme, index) => (
                         <span
                           key={index}
                           className="bg-gradient-to-r from-purple-500/20 to-purple-600/20 border border-purple-500/30 px-4 py-2 rounded-full text-sm font-medium hover:from-purple-500/30 hover:to-purple-600/30 transition-colors cursor-pointer"
                         >
-                          {theme.name}
+                          {theme}
                         </span>
                       ))}
                     </div>
@@ -272,7 +267,7 @@ const handleWatchTrailer = () => {
                 >
                   <PlayCircle size={24} className="animate-pulse" />
                   <span>Watch Trailer</span>
-              </button>
+                </button>
 
                 {/* Synopsis */}
                 <div>
@@ -280,7 +275,7 @@ const handleWatchTrailer = () => {
                     <BookOpen className="text-blue-400" size={24} />
                     <span>Synopsis</span>
                   </h3>
-                  <p className="text-gray-300 leading-relaxed text-lg">{animeData.synopsis}</p>
+                  <p className="text-gray-300 leading-relaxed text-lg">{animeData.description}</p>
                 </div>
               </div>
             </div>
@@ -291,40 +286,30 @@ const handleWatchTrailer = () => {
                 <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Status</h4>
                 <p className="text-white font-semibold text-lg">{animeData.status}</p>
               </div>
-              
+
               <div className="bg-slate-700/50 p-6 rounded-xl">
                 <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Studio</h4>
-                <p className="text-white font-semibold text-lg">{animeData.studios[0]?.name}</p>
+                <p className="text-white font-semibold text-lg">{animeData.terms_by_type?.studio?.[0] || 'N/A'}</p>
               </div>
-              
+
               <div className="bg-slate-700/50 p-6 rounded-xl">
                 <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Rating</h4>
                 <p className="text-white font-semibold text-lg">{animeData.rating}</p>
               </div>
-              
-              <div className="bg-slate-700/50 p-6 rounded-xl">
-                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Popularity</h4>
-                <p className="text-white font-semibold text-lg">#{animeData.popularity}</p>
-              </div>
-              
+
               <div className="bg-slate-700/50 p-6 rounded-xl">
                 <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Aired</h4>
-                <p className="text-white font-semibold text-lg">{animeData.aired.string}</p>
+                <p className="text-white font-semibold text-lg">{animeData.aired}</p>
               </div>
-              
-              <div className="bg-slate-700/50 p-6 rounded-xl">
-                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Broadcast</h4>
-                <p className="text-white font-semibold text-lg">{animeData.broadcast.day}s at {animeData.broadcast.time}</p>
-              </div>
-              
+
               <div className="bg-slate-700/50 p-6 rounded-xl">
                 <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Producers</h4>
-                <p className="text-white font-semibold text-lg">{animeData.producers[0]?.name}</p>
+                <p className="text-white font-semibold text-lg">{animeData.terms_by_type?.producer?.[0] || 'N/A'}</p>
               </div>
-              
+
               <div className="bg-slate-700/50 p-6 rounded-xl">
                 <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-2">Episodes</h4>
-                <p className="text-white font-semibold text-lg">{animeData.episodes}</p>
+                <p className="text-white font-semibold text-lg">{animeData.episodes_count || animeData.episodes?.length}</p>
               </div>
             </div>
           </div>
@@ -333,19 +318,19 @@ const handleWatchTrailer = () => {
 
 
       {showToast && (
-      <div className="fixed bottom-8 right-8 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center space-x-3 animate-bounce z-50">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-        </svg>
-        <div className="font-semibold text-lg">Added to Watchlist!</div>
-        <button
-          onClick={() => navigate("/Watchlist")}
-          className="ml-4 bg-white text-green-700 font-semibold px-3 py-1 rounded-lg hover:bg-gray-200 transition-all"
-        >
-          View Now
-        </button>
-      </div>
-    )}
+        <div className="fixed bottom-8 right-8 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center space-x-3 animate-bounce z-50">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <div className="font-semibold text-lg">Added to Watchlist!</div>
+          <button
+            onClick={() => navigate("/Watchlist")}
+            className="ml-4 bg-white text-green-700 font-semibold px-3 py-1 rounded-lg hover:bg-gray-200 transition-all"
+          >
+            View Now
+          </button>
+        </div>
+      )}
     </div>
   );
 };

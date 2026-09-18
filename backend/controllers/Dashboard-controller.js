@@ -1,55 +1,84 @@
 import axios from "axios";
-
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+import { AnimeIndex } from "../models/Anime.js";
 
 const fetchDashboard = async (req, res) => {
   try {
-    let page = 1;
-    let allAnimes = [];
-    let hasNext = true;
+    let recentAnimes = [];
+    const page = Number(req.query.page) || 1;
+    const perPage = 20;
 
-    // 🔹 Keep fetching until API says no next page
-    while (hasNext) {
-      const { data } = await axios.get(
-        `https://api.jikan.moe/v4/seasons/now?page=${page}&sfw`
+    // Try fetching recent from new API
+    try {
+      const { data: apiResponse } = await axios.get(
+        `https://anikotoapi.site/recent-anime?page=${page}&per_page=${perPage}`
       );
 
-      if (!data.data || data.data.length === 0) break;
+      // API returns: { ok, data: [...], pagination: {...} }
+      recentAnimes = Array.isArray(apiResponse?.data) ? apiResponse.data : [];
 
-      allAnimes = [...allAnimes, ...data.data];
-
-      hasNext = data.pagination.has_next_page;
-      page++;
-
-      if (hasNext) await delay(800); // respect rate limit
+      // Upsert into AnimeIndex with rich fields
+      for (const anime of recentAnimes) {
+        if (anime.id) {
+          await AnimeIndex.findOneAndUpdate(
+            { id: String(anime.id) },
+            {
+              id: String(anime.id),
+              title: anime.title || anime.name,
+              alternative: anime.alternative,
+              native: anime.native,
+              slug: anime.slug,
+              poster: anime.poster,
+              score: anime.score || 0,
+              year: anime.year,
+              status: anime.status,
+              episodes_count: anime.episodes_count,
+              is_sub: anime.is_sub !== undefined,
+              is_dub: anime.is_dub !== undefined,
+              description: anime.description,
+              terms_by_type: anime.terms_by_type,
+              background_image: anime.background_image,
+              rating: anime.rating,
+            },
+            { upsert: true, new: true }
+          );
+        }
+      }
+    } catch (apiError) {
+      console.error("Error fetching from external API, falling back to cache", apiError.message);
     }
 
-    // 🔹 Map relevant fields
-    const formatted = allAnimes.map((anime) => ({
-      id: anime.mal_id,
+
+    const allCached = (await AnimeIndex.find({}).sort({ updatedAt: -1 }).limit(50)) || [];
+
+    const formatted = allCached.map((anime) => ({
+      id: anime.id,
       title: anime.title,
-      image: anime.images.jpg.image_url,
+      poster: anime.poster,
       score: anime.score,
+      year: anime.year,
       status: anime.status,
-      episodes: anime.episodes,
+      episodes_count: anime.episodes_count,
+      is_sub: anime.is_sub,
+      is_dub: anime.is_dub,
+      description: anime.description,
+      terms_by_type: anime.terms_by_type,
+      background_image: anime.background_image,
+      rating: anime.rating,
     }));
 
-    // 🔹 Group into sections
-    const upcoming = formatted.filter((anime) => anime.status === "Not yet aired");
-    const currentlyAiring = formatted.filter((anime) => anime.status === "Currently Airing").slice(0,18);
-    const trending = formatted
-      .filter((anime) => anime.score && anime.score >= 8)
-      .sort((a, b) => b.score - a.score); // highest score first
-    const continueWatching = formatted.slice(0, 5); // TODO: replace with user DB later
+    const trending = [...formatted].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 20);
+    const popular = [...formatted].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 20);
+    const upcoming = formatted.slice(0, 10);
+    const recent = formatted.slice(0, 20);
 
     res.json({
       upcoming,
-      currentlyAiring,
-      trending,
-      continueWatching,
+      popular,
+      recent,
+      trending
     });
   } catch (e) {
-    console.error(e);
+    console.error(e); s
     res.status(500).json({ error: "Failed to fetch dashboard data" });
   }
 };

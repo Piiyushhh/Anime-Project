@@ -12,4 +12,5 @@ Router.get("/WatchList/get", getWatchlist);
 Router.post("/WatchList/add", addToWatchlist);
 Router.delete("/WatchList/:id", removeFromWatchlist);
 
-export default Router;  
+export default Router;
+  

@@ -8,7 +8,7 @@ const HeroSection = ({ animeList = [] }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate(`/Dashboard/AnimePage/${animeList[currentIndex].mal_id}`);
+    navigate(`/Dashboard/AnimePage/${animeList[currentIndex].id}`);
   };
 
   useEffect(() => {
@@ -24,127 +24,150 @@ const HeroSection = ({ animeList = [] }) => {
   const featuredAnime = animeList[currentIndex];
 
   return (
-    <section className="relative w-full min-h-[90vh] flex flex-col justify-center overflow-hidden"> {/* 🔹 raised height + hidden overflow */}
-      
-      {/* 🔹 BACKGROUND WRAPPER */}
-      <div className="absolute inset-0 flex justify-center items-center">
-        <img
-          src={
-            featuredAnime.images?.jpg?.large_image_url ||
-            featuredAnime.images?.jpg?.image_url
-          }
-          alt={featuredAnime.title}
-          className="w-[92%] h-[85vh] object-cover rounded-3xl shadow-lg"
-        />
-        {/* 🔹 Soft gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F14] via-[#0B0F14]/70 to-transparent rounded-3xl" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0B0F14] via-transparent to-[#0B0F14]/80 rounded-3xl" />
-      </div>
+    <section className="relative px-4 md:px-8 pt-6">
+      <div className="relative w-full max-w-[1800px] mx-auto h-[460px] md:h-[520px] overflow-hidden rounded-3xl border border-white/10 shadow-2xl">
+        {/* Background Image */}
+        <div className="absolute inset-0">
+          <img
+            src={featuredAnime.background_image || featuredAnime.poster}
+            alt={featuredAnime.title}
+            className="w-full h-full object-cover"
+          />
+          {/* Gradient overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F14] via-[#0B0F14]/70 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0B0F14] via-transparent to-[#0B0F14]/80" />
+        </div>
 
-      {/* CONTENT */}
-      <div className="relative z-10 h-full max-w-[1800px] mx-10 my-10 overflow-hidden px-12 flex items-end pb-20">
-        <div className="max-w-3xl space-y-6">
-          {/* Tags */}
-          <div className="flex items-center gap-3">
-            <span className="px-4 py-1.5 bg-purple-600/20 border border-purple-500/30 rounded-full text-sm font-semibold text-purple-300 backdrop-blur-xl">
-              #{currentIndex + 1} TRENDING
-            </span>
-            <span className="px-4 py-1.5 bg-cyan-600/20 border border-cyan-500/30 rounded-full text-sm font-semibold text-cyan-300 backdrop-blur-xl">
-              {featuredAnime.type}
-            </span>
-          </div>
-
-          {/* Title */}
-          <h2 className="text-6xl md:text-7xl font-black tracking-tight leading-none">
-            <span className="bg-gradient-to-r from-white via-purple-200 to-cyan-200 text-transparent bg-clip-text">
-              {featuredAnime.title}
-            </span>
-          </h2>
-
-          {/* Stats */}
-          <div className="flex items-center gap-6 text-lg">
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-400" fill="currentColor" />
-              <span className="font-bold">{featuredAnime.score}</span>
-              <span className="text-white/40">/10</span>
-            </div>
-            <div className="w-1 h-1 rounded-full bg-white/40" />
-            <span className="text-white/60">{featuredAnime.year || "N/A"}</span>
-            <div className="w-1 h-1 rounded-full bg-white/40" />
-            <span className="text-white/60">
-              {featuredAnime.episodes || "?"} Episodes
-            </span>
-            <div className="w-1 h-1 rounded-full bg-white/40" />
-            <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-white/60" />
-              <span className="text-white/60">
-                {(featuredAnime.members || 0).toLocaleString()} watching
-              </span>
-            </div>
-          </div>
-
-          {/* Synopsis */}
-          <p className="text-lg text-white/70 leading-relaxed line-clamp-3 max-w-2xl">
-            {featuredAnime.synopsis}
-          </p>
-
-          {/* Buttons */}
-          <div className="flex items-center gap-4 pt-4">
-            <button
-              className="group relative px-10 py-5 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-2xl font-bold text-lg
-              overflow-hidden hover:scale-105 transition-transform"
-              onClick={handleClick}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative flex items-center gap-3">
-                <Play className="w-6 h-6" fill="white" />
-                WATCH NOW
-              </div>
-            </button>
-            <button className="px-10 py-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl font-bold text-lg hover:bg-white/20 transition-all">
-              <Plus className="w-6 h-6 inline mr-2" />
-              MY LIST
-            </button>
-            <button className="p-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl hover:bg-white/20 transition-all">
-              <Sparkles className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Genres */}
-          {featuredAnime.genres && featuredAnime.genres.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2">
-              {featuredAnime.genres.slice(0, 5).map((genre) => (
-                <span
-                  key={genre.mal_id}
-                  className="px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg text-sm text-white/70"
-                >
-                  {genre.name}
+        {/* CONTENT */}
+        <div className="relative z-10 h-full flex items-end">
+          <div className="w-full px-6 md:px-10 lg:px-14 pb-10 md:pb-12">
+            <div className="max-w-2xl space-y-4">
+              {/* Tags */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="px-4 py-1.5 bg-purple-600/20 border border-purple-500/30 rounded-full text-sm font-semibold text-purple-300 backdrop-blur-xl">
+                  #{currentIndex + 1} TRENDING
                 </span>
-              ))}
+                {featuredAnime.status && (
+                  <span className="px-4 py-1.5 bg-cyan-600/20 border border-cyan-500/30 rounded-full text-sm font-semibold text-cyan-300 backdrop-blur-xl">
+                    {featuredAnime.status}
+                  </span>
+                )}
+                {featuredAnime.is_sub && (
+                  <span className="px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full text-xs font-semibold text-green-300">
+                    SUB
+                  </span>
+                )}
+                {featuredAnime.is_dub && (
+                  <span className="px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded-full text-xs font-semibold text-blue-300">
+                    DUB
+                  </span>
+                )}
+              </div>
+
+              {/* Title */}
+              <h2 className="max-w-2xl text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[0.95] line-clamp-3">
+                <span className="bg-gradient-to-r from-white via-purple-200 to-cyan-200 text-transparent bg-clip-text">
+                  {featuredAnime.title}
+                </span>
+              </h2>
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 md:gap-6 text-base md:text-lg flex-wrap">
+                {featuredAnime.score > 0 && (
+                  <div className="flex items-center gap-2">
+                    <Star className="w-5 h-5 text-yellow-400" fill="currentColor" />
+                    <span className="font-bold">{featuredAnime.score}</span>
+                    <span className="text-white/40">/10</span>
+                  </div>
+                )}
+                {featuredAnime.year && (
+                  <>
+                    <div className="w-1 h-1 rounded-full bg-white/40" />
+                    <span className="text-white/60">{featuredAnime.year}</span>
+                  </>
+                )}
+                {featuredAnime.episodes_count > 0 && (
+                  <>
+                    <div className="w-1 h-1 rounded-full bg-white/40" />
+                    <span className="text-white/60">
+                      {featuredAnime.episodes_count} Episodes
+                    </span>
+                  </>
+                )}
+                {featuredAnime.rating && (
+                  <>
+                    <div className="w-1 h-1 rounded-full bg-white/40" />
+                    <span className="text-white/60">{featuredAnime.rating}</span>
+                  </>
+                )}
+              </div>
+
+              {/* Description */}
+              {featuredAnime.description && (
+                <p className="text-base md:text-lg text-white/70 leading-relaxed line-clamp-3 max-w-2xl">
+                  {featuredAnime.description}
+                </p>
+              )}
+
+              {/* Buttons */}
+              <div className="flex items-center gap-4 pt-2">
+                <button
+                  className="group relative px-8 py-4 md:px-10 md:py-5 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-2xl font-bold text-base md:text-lg
+              overflow-hidden hover:scale-105 transition-transform"
+                  onClick={handleClick}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative flex items-center gap-3">
+                    <Play className="w-6 h-6" fill="white" />
+                    WATCH NOW
+                  </div>
+                </button>
+                <button className="px-8 py-4 md:px-10 md:py-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl font-bold text-base md:text-lg hover:bg-white/20 transition-all">
+                  <Plus className="w-6 h-6 inline mr-2" />
+                  MY LIST
+                </button>
+                <button className="p-4 md:p-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl hover:bg-white/20 transition-all">
+                  <Sparkles className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Genres */}
+              {featuredAnime.terms_by_type?.genre?.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {featuredAnime.terms_by_type.genre.slice(0, 5).map((genre, idx) => (
+                    <span
+                      key={idx}
+                      className="px-4 py-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg text-sm text-white/70"
+                    >
+                      {genre}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* NAV BUTTONS */}
+          <button
+            className="absolute left-5 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-3 rounded-full z-20"
+            onClick={() =>
+              setCurrentIndex((prev) =>
+                prev === 0 ? animeList.length - 1 : prev - 1
+              )
+            }
+          >
+            {"<"}
+          </button>
+          <button
+            className="absolute right-5 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-3 rounded-full z-20"
+            onClick={() =>
+              setCurrentIndex((prev) => (prev + 1) % animeList.length)
+            }
+          >
+            {">"}
+          </button>
         </div>
       </div>
-
-      {/* NAV BUTTONS */}
-      <button
-        className="absolute left-5 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-3 rounded-full z-20"
-        onClick={() =>
-          setCurrentIndex((prev) =>
-            prev === 0 ? animeList.length - 1 : prev - 1
-          )
-        }
-      >
-        {"<"}
-      </button>
-      <button
-        className="absolute right-5 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-3 rounded-full z-20"
-        onClick={() =>
-          setCurrentIndex((prev) => (prev + 1) % animeList.length)
-        }
-      >
-        {">"}
-      </button>
     </section>
   );
 };

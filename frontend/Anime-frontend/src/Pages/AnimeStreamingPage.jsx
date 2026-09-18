@@ -1,69 +1,67 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play,Zap, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Subtitles, Home, Search, Bookmark, User, Menu, X, ChevronRight } from 'lucide-react';
+import { Play, Zap, Pause, Volume2, VolumeX, Maximize, Settings, SkipForward, SkipBack, Subtitles, Home, Search, Bookmark, User, Menu, X, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import SearchBar from '../components/SearchBar';
 import Footer from '../components/Footer';
 
+
 const AnimeStreamingPage = () => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [quality, setQuality] = useState('1080p');
-  const [currentEpisode, setCurrentEpisode] = useState([]);
-  const [selectedSeason, setSelectedSeason] = useState(null);
-  
+
+  const [currentEpisode, setCurrentEpisode] = useState(null);
+  const [language, setLanguage] = useState('sub');
+
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const canvasRef = useRef(null);
-  
-  // API Data States
+
+
+  // API Data States  
   const [animeData, setAnimeData] = useState(null);
   const [episodes, setEpisodes] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [animeId, setAnimeId] = useState(null);
-  
+
   const videoRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
   const containerRef = useRef(null);
+  const streamUrl =
+    currentEpisode?.embed_url?.[language] ||
+    currentEpisode?.embed_url?.sub ||
+    currentEpisode?.embed_url?.dub ||
+    null;
 
   // Get anime ID from URL
-  const {id} = useParams();
+  const { id } = useParams();
   useEffect(() => {
-  setAnimeId(id || '16498');
-}, [id]);
+    setAnimeId(id || '16498');
+  }, [id]);
 
   // Fetch anime data from Jikan API
   useEffect(() => {
     if (!animeId) return;
 
+
     const fetchAnimeData = async () => {
-    try {
-      setLoading(true);
+      try {
+        setLoading(true);
 
-      const { data: animeJson } = await axios.get(`https://api.jikan.moe/v4/anime/${animeId}/full`);
-      setAnimeData(animeJson.data);
+        const { data: animeJson } = await axios.get(`http://localhost:4000/Animestream/AnimePage/${animeId}`);
+        setAnimeData(animeJson);
+        setEpisodes(animeJson.episodes || []);
 
-      const { data: episodesJson } = await axios.get(`https://api.jikan.moe/v4/anime/${animeId}/episodes`);
-      setEpisodes(episodesJson.data || []);
+        if (animeJson.episodes?.length > 0) {
+          setCurrentEpisode(animeJson.episodes[0]);
+        }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const { data: recsJson } = await axios.get(`https://api.jikan.moe/v4/anime/${animeId}/recommendations`);
-      setRecommendations(recsJson.data?.slice(0, 12) || []);
-
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching anime data:', error);
-      setLoading(false);
-    }
-  };
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching anime data:', error);
+        setLoading(false);
+      }
+    };
 
     fetchAnimeData();
   }, [animeId]);
@@ -81,92 +79,28 @@ const AnimeStreamingPage = () => {
 
   const navigate = useNavigate();
 
-  const handleClick = () => {
-    navigate(`/Dashboard/AnimePage/${animeData.mal_id}`);
-  };
 
-  const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+  const handleEpisodeSelect = (ep) => {
+    setCurrentEpisode(ep);
+
+    const hasSub = Boolean(ep.embed_url?.sub);
+    const hasDub = Boolean(ep.embed_url?.dub);
+
+    // Keep current language if available
+    if (language === 'sub' && hasSub) {
+      return;
     }
-  };
 
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration);
+    if (language === 'dub' && hasDub) {
+      return;
     }
-  };
 
-  const handleSeek = (seconds) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = Math.max(0, Math.min(videoRef.current.currentTime + seconds, duration));
+    // Current language unavailable → switch automatically
+    if (hasSub) {
+      setLanguage('sub');
+    } else if (hasDub) {
+      setLanguage('dub');
     }
-  };
-
-  const handleProgressClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    if (videoRef.current) {
-      videoRef.current.currentTime = pos * duration;
-    }
-  };
-
-  const handleVolumeChange = (e) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    setIsMuted(newVolume === 0);
-    if (videoRef.current) {
-      videoRef.current.volume = newVolume;
-    }
-  };
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted;
-    }
-  };
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen();
-    } else {
-      document.exitFullscreen();
-    }
-  };
-
-  const changeSpeed = (speed) => {
-    setPlaybackSpeed(speed);
-    if (videoRef.current) {
-      videoRef.current.playbackRate = speed;
-    }
-    setShowSettings(false);
-  };
-
-  const changeQuality = (q) => {
-    setQuality(q);
-    setShowSettings(false);
-  };
-
-  const handleEpisodeSelect = (episodeNum) => {
-    setCurrentEpisode(episodeNum);
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play();
-      setIsPlaying(true);
-    }
-  };
-
-  const handleVideoEnd = () => {
-    if (currentEpisode < episodes.length) {
-      handleEpisodeSelect(currentEpisode + 1);
-    }
-  };
-
-  const formatTime = (time) => {
-    const mins = Math.floor(time / 60);
-    const secs = Math.floor(time % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleMouseMove = () => {
@@ -180,69 +114,63 @@ const AnimeStreamingPage = () => {
   };
 
   useEffect(() => {
-      const handleMouseMove = (e) => {
-        setMousePos({ x: e.clientX, y: e.clientY });
-      };
-      window.addEventListener('mousemove', handleMouseMove);
-      return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
+    const handleMouseMove = (e) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
-    const fetchSeasonEpisodes = async (mal_id) => {
-      try {
-        const { data } = await axios.get(`https://api.jikan.moe/v4/anime/${mal_id}/episodes`);
-        setEpisodes(data.data || []);
-        setSelectedSeason(mal_id);
-      } catch (error) {
-        console.error("Failed to fetch episodes:", error);
-      }
+  const fetchSeasonEpisodes = async (mal_id) => {
+    // not used anymore
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = Array.from({ length: 100 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 3,
+      speedX: (Math.random() - 0.5) * 0.3,
+      speedY: (Math.random() - 0.5) * 0.3,
+      opacity: Math.random() * 0.5,
+      hue: Math.random() > 0.5 ? 270 : 160
+    }));
+
+    let animationId;
+    const animate = () => {
+      ctx.fillStyle = 'rgba(3, 8, 13, 1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach(p => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+
+        if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
+        gradient.addColorStop(0, `hsla(${p.hue}, 100%, 70%, ${p.opacity})`);
+        gradient.addColorStop(1, `hsla(${p.hue}, 100%, 70%, 0)`);
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      animationId = requestAnimationFrame(animate);
     };
 
-      useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-    
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    
-        const particles = Array.from({ length: 100 }, () => ({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          size: Math.random() * 3,
-          speedX: (Math.random() - 0.5) * 0.3,
-          speedY: (Math.random() - 0.5) * 0.3,
-          opacity: Math.random() * 0.5,
-          hue: Math.random() > 0.5 ? 270 : 160
-        }));
-    
-        let animationId;
-        const animate = () => {
-          ctx.fillStyle = 'rgba(3, 8, 13, 1)';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-          particles.forEach(p => {
-            p.x += p.speedX;
-            p.y += p.speedY;
-    
-            if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
-            if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
-    
-            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
-            gradient.addColorStop(0, `hsla(${p.hue}, 100%, 70%, ${p.opacity})`);
-            gradient.addColorStop(1, `hsla(${p.hue}, 100%, 70%, 0)`);
-    
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
-            ctx.fill();
-          });
-    
-          animationId = requestAnimationFrame(animate);
-        };
-    
-        animate();
-        return () => cancelAnimationFrame(animationId);
-      }, []);
+    animate();
+    return () => cancelAnimationFrame(animationId);
+  }, []);
 
 
   if (loading) {
@@ -265,12 +193,12 @@ const AnimeStreamingPage = () => {
   }
 
   return (
-  <div className="min-h-screen " style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
+    <div className="min-h-screen " style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)' }}>
       {/* Navigation Bar */}
-   <div className="fixed top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" 
-           style={{ transform: `translate(${mousePos.x * 0.02}px, ${mousePos.y * 0.02}px)` }} />
+      <div className="fixed top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"
+        style={{ transform: `translate(${mousePos.x * 0.02}px, ${mousePos.y * 0.02}px)` }} />
       <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"
-           style={{ transform: `translate(${-mousePos.x * 0.015}px, ${-mousePos.y * 0.015}px)` }} />
+        style={{ transform: `translate(${-mousePos.x * 0.015}px, ${-mousePos.y * 0.015}px)` }} />
 
       {/* Header */}
       <header className="relative z-50 sticky top-0 backdrop-blur-2xl bg-[#0B0F14]/80 border-b border-white/5">
@@ -284,10 +212,10 @@ const AnimeStreamingPage = () => {
                   <Zap className="w-7 h-7 text-white" fill="white" />
                 </div>
               </div>
-                
+
               <div>
                 <h1 className="text-2xl font-black tracking-tighter bg-gradient-to-r from-purple-400 via-purple-300 to-cyan-400 text-transparent bg-clip-text">
-                  AnimeStream 
+                  AnimeStream
                 </h1>
                 <p className="text-xs text-purple-400/60 tracking-wide">ANIME HUB</p>
               </div>
@@ -301,21 +229,21 @@ const AnimeStreamingPage = () => {
             {/* Actions */}
             <div className="flex items-center gap-3 mr-2">
               <button className="relative group flex items-center gap-2 hover:text-cyan-400 transition-all"
-              onClick={()=>navigate('/dashboard')}>
-              <Home className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
-              Home
-            </button>
+                onClick={() => navigate('/dashboard')}>
+                <Home className="w-5 h-5 text-cyan-400 group-hover:scale-110 transition-transform" />
+                Home
+              </button>
 
-            <button className="relative group flex items-center gap-2 hover:text-purple-400 transition-all"
-            onClick={()=>navigate('/Watchlist')}>
-              <Bookmark className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
-              Watchlist
-            </button>
+              <button className="relative group flex items-center gap-2 hover:text-purple-400 transition-all"
+                onClick={() => navigate('/Watchlist')}>
+                <Bookmark className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+                Watchlist
+              </button>
 
-            <button className="relative group flex items-center gap-3  hover:text-pink-400 transition-all">
-              <User className="w-5 h-5 text-pink-400 group-hover:scale-110 transition-transform" />
-              Profile 
-            </button>
+              <button className="relative group flex items-center gap-3  hover:text-pink-400 transition-all">
+                <User className="w-5 h-5 text-pink-400 group-hover:scale-110 transition-transform" />
+                Profile
+              </button>
             </div>
           </div>
         </div>
@@ -334,25 +262,19 @@ const AnimeStreamingPage = () => {
               <div className="space-y-2">
                 {episodes.length > 0 ? episodes.map((ep) => (
                   <button
-                    key={ep.mal_id}
-                    onClick={() => handleEpisodeSelect(ep.mal_id)}
-                    className={`w-full text-left p-3 rounded-lg transition-all ${
-                      currentEpisode === ep.mal_id
-                        ? 'bg-sky-500/20 border border-sky-400 text-sky-300'
-                        : 'bg-slate-700/30 hover:bg-slate-700/50 text-slate-300'
-                    }`}
+                    key={ep.id || ep.number}
+                    onClick={() => handleEpisodeSelect(ep)}
+                    className={`w-full text-left p-3 rounded-lg transition-all ${currentEpisode?.id === ep.id
+                      ? 'bg-sky-500/20 border border-sky-400 text-sky-300'
+                      : 'bg-slate-700/30 hover:bg-slate-700/50 text-slate-300'
+                      }`}
                   >
                     <div className="font-medium text-sm mb-1">
-                    Episode {ep.mal_id}
+                      Episode {ep.number}
                     </div>
                     <div className="text-xs text-slate-400 line-clamp-2">
-                      {ep.title || `Episode ${ep.mal_id}`}
+                      {ep.title || `Episode ${ep.number}`}
                     </div>
-                    {ep.filler && (
-                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded mt-1 inline-block">
-                        Filler
-                      </span>
-                    )}
                   </button>
                 )) : (
                   <div className="text-slate-400 text-sm text-center py-4">
@@ -367,163 +289,72 @@ const AnimeStreamingPage = () => {
           <div className="lg:col-span-9 order-1 lg:order-2 space-y-6">
             {/* Video Player */}
             <div ref={containerRef} className="relative bg-black rounded-xl overflow-hidden shadow-2xl" onMouseMove={handleMouseMove}>
-              
-              {!isPlaying && (<div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-6 py-2 rounded-full backdrop-blur-md border border-white/10 shadow-lg z-20 text-sm md:text-base font-semibold tracking-wide">
-              🎬 Now Playing: <span className="text-sky-400 ml-1">{animeData.title}</span> — 
-              <span className="text-purple-400 ml-1">Episode {currentEpisode}</span>
+
+              {!isPlaying && (<div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-6 py-2 rounded-full backdrop-blur-md border border-white/10 shadow-lg z-20 text-sm md:text-base font-semibold tracking-wide flex items-center gap-4">
+                <span>🎬 {animeData.title} — Episode {currentEpisode?.number}</span>
+                <div className="flex bg-slate-800 rounded-full overflow-hidden border border-slate-600">
+                  <button onClick={() => setLanguage('sub')} className={`px-3 py-1 ${language === 'sub' ? 'bg-sky-500 text-white' : 'text-slate-400 hover:text-white'} transition-colors disabled:opacity-30`} disabled={!currentEpisode?.embed_url?.sub}>Sub</button>
+                  <button onClick={() => setLanguage('dub')} className={`px-3 py-1 ${language === 'dub' ? 'bg-sky-500 text-white' : 'text-slate-400 hover:text-white'} transition-colors disabled:opacity-30`} disabled={!currentEpisode?.embed_url?.dub}>Dub</button>
+                </div>
               </div>)}
 
-              <video
-                ref={videoRef}
-                className="w-full aspect-video"
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={handleLoadedMetadata}
-                onEnded={handleVideoEnd}
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-              />
-
-              {/* Video Controls Overlay */}
-              <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-                {/* Progress Bar */}
-                <div className="px-4 py-2">
-                  <div 
-                    className="w-full h-1 bg-slate-600 rounded-full cursor-pointer hover:h-2 transition-all group"
-                    onClick={handleProgressClick}
-                  >
-                    <div 
-                      className="h-full bg-sky-400 rounded-full relative"
-                      style={{ width: `${(currentTime / duration) * 100}%` }}
-                    >
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-sky-300 rounded-full opacity-0 group-hover:opacity-100"></div>
-                    </div>
-                  </div>
+              {streamUrl ? (
+                <iframe
+                  key={streamUrl}
+                  className="w-full aspect-video"
+                  src={streamUrl}
+                  allowFullScreen
+                  title="Video Player"
+                />
+              ) : (
+                <div className="w-full aspect-video flex items-center justify-center text-slate-400">
+                  No streaming link available.
                 </div>
-
-                {/* Controls */}
-                <div className="flex items-center justify-between px-4 pb-4">
-                  <div className="flex items-center gap-3">
-                    <button onClick={togglePlay} className="text-white hover:text-sky-400 transition-colors">
-                      {isPlaying ? <Pause size={28} /> : <Play size={28} />}
-                    </button>
-                    <button onClick={() => handleSeek(-10)} className="text-white hover:text-sky-400 transition-colors">
-                      <SkipBack size={22} />
-                    </button>
-                    <button onClick={() => handleSeek(10)} className="text-white hover:text-sky-400 transition-colors">
-                      <SkipForward size={22} />
-                    </button>
-                    <div className="flex items-center gap-2">
-                      <button onClick={toggleMute} className="text-white hover:text-sky-400 transition-colors">
-                        {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
-                      </button>
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={isMuted ? 0 : volume}
-                        onChange={handleVolumeChange}
-                        className="w-20 accent-sky-400"
-                      />
-                    </div>
-                    <span className="text-sm text-slate-300">
-                      {formatTime(currentTime)} / {formatTime(duration)}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <button className="text-white hover:text-sky-400 transition-colors">
-                      <Subtitles size={22} />
-                    </button>
-                    <div className="relative">
-                      <button 
-                        onClick={() => setShowSettings(!showSettings)}
-                        className="text-white hover:text-sky-400 transition-colors"
-                      >
-                        <Settings size={22} />
-                      </button>
-                      {showSettings && (
-                        <div className="absolute bottom-full right-0 mb-2 bg-slate-900 rounded-lg p-3 min-w-[180px] shadow-xl border border-slate-700">
-                          <div className="mb-3">
-                            <p className="text-xs text-slate-400 mb-2">Speed</p>
-                            <div className="space-y-1">
-                              {[0.5, 1, 1.25, 1.5, 2].map(speed => (
-                                <button
-                                  key={speed}
-                                  onClick={() => changeSpeed(speed)}
-                                  className={`w-full text-left px-3 py-1 rounded text-sm ${playbackSpeed === speed ? 'bg-sky-500 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
-                                >
-                                  {speed}x
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-400 mb-2">Quality</p>
-                            <div className="space-y-1">
-                              {['1080p', '720p', '480p'].map(q => (
-                                <button
-                                  key={q}
-                                  onClick={() => changeQuality(q)}
-                                  className={`w-full text-left px-3 py-1 rounded text-sm ${quality === q ? 'bg-sky-500 text-white' : 'text-slate-300 hover:bg-slate-800'}`}
-                                >
-                                  {q}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <button onClick={toggleFullscreen} className="text-white hover:text-sky-400 transition-colors">
-                      <Maximize size={22} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Seasons Section */}
             {/* --- Seasons Section --- */}
-          <div className="mt-8 px-6">
-            <h3 className="text-xl font-bold text-purple-400 mb-4">Seasons</h3>
-            <div className="flex flex-wrap gap-4">
-              {["Season 1", "Season 2", "Season 3"].map((season, index) => (
-                <div
-                  key={index}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-700/40 to-cyan-600/30 
+            <div className="mt-8 px-6">
+              <h3 className="text-xl font-bold text-purple-400 mb-4">Seasons</h3>
+              <div className="flex flex-wrap gap-4">
+                {["Season 1", "Season 2", "Season 3"].map((season, index) => (
+                  <div
+                    key={index}
+                    className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-700/40 to-cyan-600/30 
                             border border-white/10 text-white font-semibold text-center 
                             hover:bg-gradient-to-r hover:from-purple-600/60 hover:to-cyan-500/50 
                             transition-all cursor-pointer"
-                >
-                  {season}
-                </div>
-              ))}
+                  >
+                    {season}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
 
             {/* Anime Info */}
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 p-6">
               <div className="flex flex-col md:flex-row gap-6">
-                <img 
-                  src={animeData.images?.jpg?.large_image_url} 
+                <img
+                  src={animeData.poster}
                   alt={animeData.title}
                   className="w-full md:w-48 h-auto rounded-lg shadow-lg"
                 />
                 <div className="flex-1">
                   <h2 className="text-3xl font-bold text-white mb-2">{animeData.title}</h2>
-                  <p className="text-slate-400 mb-4">{animeData.title_english || animeData.title_japanese}</p>
-                  
+                  <p className="text-slate-400 mb-4">{animeData.native || animeData.alternative}</p>
+
                   <div className="flex flex-wrap gap-3 mb-4">
                     <div className="flex items-center gap-2 bg-sky-500/20 px-3 py-1.5 rounded-lg">
                       <span className="text-yellow-400">★</span>
                       <span className="text-sky-300 font-semibold">{animeData.score || 'N/A'}</span>
                     </div>
                     <div className="bg-slate-700/50 px-3 py-1.5 rounded-lg text-slate-300">
-                      <span className="text-slate-400">📅</span> {animeData.year || animeData.aired?.prop?.from?.year}
+                      <span className="text-slate-400">📅</span> {animeData.year || 'N/A'}
                     </div>
                     <div className="bg-slate-700/50 px-3 py-1.5 rounded-lg text-slate-300">
-                      <span className="text-slate-400">📺</span> {animeData.episodes || '?'} Episodes
+                      <span className="text-slate-400">📺</span> {animeData.episodes?.length || 0} Episodes
                     </div>
                     <div className="bg-slate-700/50 px-3 py-1.5 rounded-lg text-slate-300">
                       <span className="text-slate-400">⏱️</span> {animeData.duration || 'N/A'}
@@ -533,9 +364,9 @@ const AnimeStreamingPage = () => {
                   <div className="mb-4">
                     <h3 className="text-sm font-semibold text-slate-400 mb-2">Genres</h3>
                     <div className="flex flex-wrap gap-2">
-                      {animeData.genres?.map((genre) => (
-                        <span key={genre.mal_id} className="bg-gradient-to-r from-red-900/50 to-red-800/50 px-3 py-1 rounded-full text-red-200 text-sm">
-                          {genre.name}
+                      {animeData.terms_by_type?.genre?.map((genre, idx) => (
+                        <span key={idx} className="bg-gradient-to-r from-red-900/50 to-red-800/50 px-3 py-1 rounded-full text-red-200 text-sm">
+                          {genre}
                         </span>
                       ))}
                     </div>
@@ -544,9 +375,9 @@ const AnimeStreamingPage = () => {
                   <div className="mb-4">
                     <h3 className="text-sm font-semibold text-slate-400 mb-2">Studio</h3>
                     <div className="flex flex-wrap gap-2">
-                      {animeData.studios?.map((studio) => (
-                        <span key={studio.mal_id} className="bg-slate-700/50 px-3 py-1 rounded-lg text-slate-300 text-sm">
-                          {studio.name}
+                      {animeData.terms_by_type?.studio?.map((studio, idx) => (
+                        <span key={idx} className="bg-slate-700/50 px-3 py-1 rounded-lg text-slate-300 text-sm">
+                          {studio}
                         </span>
                       ))}
                     </div>
@@ -559,7 +390,7 @@ const AnimeStreamingPage = () => {
                   <ChevronRight size={20} />
                   Synopsis
                 </h3>
-                <p className="text-slate-300 leading-relaxed">{animeData.synopsis}</p>
+                <p className="text-slate-300 leading-relaxed">{animeData.description}</p>
               </div>
             </div>
 
@@ -584,7 +415,7 @@ const AnimeStreamingPage = () => {
               </div>
             )}
 
-          {/* Recommendations */}
+            {/* Recommendations */}
             {recommendations.length > 0 && (
               <div>
                 <h3 className="text-2xl font-bold text-sky-400 mb-4">Recommended Anime</h3>
@@ -621,8 +452,8 @@ const AnimeStreamingPage = () => {
           </div>
         </div>
       </div>
-      
-      <Footer/>
+
+      <Footer />
     </div>
   );
 };

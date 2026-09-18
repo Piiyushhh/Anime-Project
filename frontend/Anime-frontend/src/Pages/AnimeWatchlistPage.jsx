@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Zap, Home, Search, Bookmark, User, Trash2, Play, Star, Calendar, Tv } from "lucide-react";
 import SearchBar from "../components/SearchBar";
+import axios from "axios";
 
 const AnimeWatchlistPage = () => {
   const [watchlist, setWatchlist] = useState([]);
@@ -12,10 +13,7 @@ const AnimeWatchlistPage = () => {
   useEffect(() => {
     const fetchWatchlist = async () => {
       try {
-        const res = await fetch("http://localhost:4000/Animestream/WatchList/get",{
-          method: "GET",
-        });
-        const data = await res.json();
+        const { data } = await axios.get("http://localhost:4000/Animestream/WatchList/get");
         setWatchlist(data);
       } catch (err) {
         console.error("Error fetching watchlist:", err);
@@ -30,13 +28,10 @@ const AnimeWatchlistPage = () => {
   const handleRemove = async (animeId) => {
     try {
       setRemovingId(animeId);
-      const res = await fetch(`http://localhost:4000/Animestream/WatchList/${animeId}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
+      const { data } = await axios.delete(`http://localhost:4000/Animestream/WatchList/${animeId}`);
 
       if (data.success) {
-        setWatchlist((prev) => prev.filter((anime) => anime.mal_id !== animeId));
+        setWatchlist((prev) => prev.filter((anime) => anime.id !== animeId));
       }
     } catch (err) {
       console.error("Error removing from watchlist:", err);
@@ -167,21 +162,21 @@ const AnimeWatchlistPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {watchlist.map((anime) => (
               <div
-                key={anime.mal_id}
+                key={anime.id}
                 className={`bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 overflow-hidden transition-all duration-300 hover:border-sky-400/50 hover:shadow-lg hover:shadow-sky-400/20 ${
-                  removingId === anime.mal_id ? "opacity-50 scale-95" : "opacity-100 scale-100"
+                  removingId === anime.id ? "opacity-50 scale-95" : "opacity-100 scale-100"
                 }`}
               >
                 <div className="relative group">
                   <img
-                    src={anime.images?.jpg?.large_image_url}
+                    src={anime.poster}
                     alt={anime.title}
                     className="w-full h-72 object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <button
-                        onClick={() => handleWatch(anime.mal_id)}
+                        onClick={() => handleWatch(anime.id)}
                         className="bg-sky-500 hover:bg-sky-600 text-white p-4 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300 shadow-lg"
                       >
                         <Play size={28} fill="currentColor" />
@@ -208,35 +203,35 @@ const AnimeWatchlistPage = () => {
                         <span>{anime.year}</span>
                       </div>
                     )}
-                    {anime.episodes && (
+                    {(anime.episodes_count || anime.episodes?.length) && (
                       <div className="flex items-center gap-1 text-xs text-slate-400">
                         <Tv size={14} />
-                        <span>{anime.episodes} eps</span>
+                        <span>{anime.episodes_count || anime.episodes?.length} eps</span>
                       </div>
                     )}
                   </div>
 
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {anime.genres?.slice(0, 3).map((genre) => (
+                    {anime.terms_by_type?.genre?.slice(0, 3).map((genre, idx) => (
                       <span
-                        key={genre.mal_id}
+                        key={idx}
                         className="bg-gradient-to-r from-red-900/40 to-red-800/40 px-2 py-1 rounded text-red-200 text-xs"
                       >
-                        {genre.name}
+                        {genre}
                       </span>
                     ))}
                   </div>
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => handleWatch(anime.mal_id)}
+                      onClick={() => handleWatch(anime.id)}
                       className="flex-1 bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <Play size={18} />
                       Watch Now
                     </button>
                     <button
-                      onClick={() => handleRemove(anime.mal_id)}
+                      onClick={() => handleRemove(anime.id)}
                       className="bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 px-4 py-2 rounded-lg transition-colors border border-red-500/30 hover:border-red-400/50"
                       title="Remove from watchlist"
                     >

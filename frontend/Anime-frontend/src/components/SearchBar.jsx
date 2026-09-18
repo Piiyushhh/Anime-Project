@@ -75,14 +75,14 @@ const SearchBar = () => {
                        rounded-2xl mt-2 max-h-80 overflow-y-auto z-20 shadow-lg">
           {results.map((anime) => (
             <li
-              key={anime.mal_id}
-              onClick={() => handleSelect(anime.mal_id)}
+              key={anime.id}
+              onClick={() => handleSelect(anime.id)}
               className="flex items-start space-x-3 px-4 py-3 cursor-pointer 
                          hover:bg-slate-800 transition-all duration-200 rounded-lg"
             >
               {/* Thumbnail with hover zoom */}
               <img
-                src={anime.images?.jpg?.image_url}
+                src={anime.poster}
                 alt={anime.title}
                 className="w-12 h-16 object-cover rounded-lg transform hover:scale-105 transition-transform duration-200"
               />
@@ -118,20 +118,20 @@ const SearchBar = () => {
 
                 {/* Genres badges */}
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {anime.genres?.slice(0, 2).map((genre) => (
+                  {anime.terms_by_type?.genre?.slice(0, 2).map((genre, idx) => (
                     <span
-                      key={genre.mal_id}
+                      key={idx}
                       className="text-xs bg-gray-700 px-2 py-0.5 rounded-full text-gray-300"
                     >
-                      {genre.name}
+                      {genre}
                     </span>
                   ))}
                 </div>
 
                 {/* Short synopsis */}
-                {anime.synopsis && (
+                {anime.description && (
                   <p className="text-xs text-gray-400 truncate mt-1">
-                    {anime.synopsis.slice(0, 80)}...
+                    {anime.description.slice(0, 80)}...
                   </p>
                 )}
               </div>
@@ -141,7 +141,7 @@ const SearchBar = () => {
                 className="h-4 w-4 text-red-400 mt-1 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation(); // prevent triggering select
-                  addToWatchlist(anime.mal_id);
+                  addToWatchlist(anime.id);
                 }}
               />
             </li>
